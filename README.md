@@ -1,59 +1,118 @@
-# 💎 Realistic-Consultation-Back-End：赋能未来的智能咨询引擎！
+# Realistic-Consultation-Back-End · AI Consultation Flask Backend
 
-## 🌟 项目简介
+> **A Flask backend powering a realistic AI consultation experience — LLM conversation history, edge-TTS voice synthesis, and MongoDB session storage.**
+>
+> Flask 驱动的 AI 拟真咨询后端：LLM 对话历史管理、edge-TTS 语音合成、MongoDB 会话存储，蓝图模块化架构。
 
-欢迎来到 **Realistic-Consultation-Back-End**！这不是一个普通的后端服务，这是我们为**下一代高度拟真（Realistic）的智能咨询应用**精心打造的**全栈后端解决方案！**
+[English](#english) · [中文](#中文)
 
-我们巧妙地融合了 Python 的简洁高效与 NoSQL 数据库的灵活性，为您提供了一个具备 **AI 交互、实时数据查询和多媒体支持**的强大引擎。它以轻量、敏捷的 **Flask 框架**为核心，旨在实现**最快**的开发周期和**最灵活**的业务迭代！
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.x-000000?logo=flask)
+![MongoDB](https://img.shields.io/badge/MongoDB-pymongo-47A248?logo=mongodb)
+![OpenAI](https://img.shields.io/badge/LLM-OpenAI_Compatible-412991?logo=openai)
+![TTS](https://img.shields.io/badge/TTS-edge--tts-0078D7)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-**一言以蔽之：我们让您的应用拥有了智慧的“大脑”和流畅的“声音”。**
+---
 
-## ✨ 核心亮点功能
+<a id="english"></a>
 
-### 1. 🤖 智能 AI 对话核心 (AIBase)
+## Architecture
 
-项目的心脏位于 `application/ai.py` 和 `AIBase.py`！
+```mermaid
+flowchart LR
+    Client["Frontend / WeChat"] -->|HTTP| Flask
 
-* **⚡️ 智能历史记录追踪：** 我们的 `/api/content` 接口不仅仅是简单的数据拉取，它能**智能地格式化和返回最新会话的历史消息**，为前端提供无缝、连贯的咨询上下文。
-* **🧠 模块化 AI 基础：** 通过 `AIBase.py` 预留了强大的扩展能力，轻松对接各种大型语言模型（LLM）API，让您的咨询服务始终走在智能前沿！
+    subgraph Flask["Flask App (Blueprint layout)"]
+        home_bp["home_bp\n(health + info)"]
+        ai_bp["ai_bp\n(LLM chat)"]
+        audio_bp["audio_bp\n(TTS audio)"]
+        table_bp["TablePool\n(session mgmt)"]
+    end
 
-### 2. 🌌 灵活的 NoSQL 数据中枢 (MongoDB)
+    ai_bp --> AIBase["AIBase.py\n(OpenAI-compatible LLM)"]
+    audio_bp --> TTS["edge-tts\n(text → MP3)"]
+    ai_bp & table_bp --> MongoDB[("MongoDB\n(session history)")]
+    AIBase --> LLM["LLM API\n(OpenAI / compatible)"]
+```
 
-我们选择了高性能、高灵活性的 **MongoDB** 作为数据存储：
+## Quickstart
 
-* **📂 敏捷数据库操作：** `MongoBase.py` 封装了所有基础数据库操作，告别繁琐的 SQL 语句。
-* **📊 实时数据表查询：** `/api/table_list` 接口配合 `TablePool.py`，能够**闪电般**根据编号查询并返回关键数据，完美支撑看板和配置需求。
+```bash
+pip install -r requirements.txt
+cp .env.example .env  # fill OPENAI_API_KEY, MONGODB_URI
+python run.py
+```
 
-### 3. 🎙️ 沉浸式多媒体支持 (TTS)
+### Key env vars
 
-通过 `tts/` 目录和 `audio.py`，我们为您的咨询应用增添了“声音”：
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1
+MONGODB_URI=mongodb://localhost:27017/consultation
+```
 
-* **📢 文本转语音（TTS）支持：** 预留了强大的音频文件托管能力，支持前端直接访问 `/static/<filename>`，让您的 AI 咨询结果可以**清晰、流畅地“说”出来**！
+## API Overview
 
-### 4. 🌐 现代 Web 服务骨架
+| Blueprint | Path | Description |
+|---|---|---|
+| `ai_bp` | `/api/content` | Get formatted conversation history |
+| `ai_bp` | `/api/chat` | Send message, get LLM reply |
+| `audio_bp` | `/api/audio` | TTS: text → audio response |
+| `table_bp` | `/api/session/**` | Session CRUD |
 
-* **🐍 Flask 极速开发：** 轻量级框架，极速启动（默认地址 `127.0.0.1:2020`）。
-* **🔄 无缝跨域支持：** 集成 **Flask-CORS**，轻松解决前后端分离部署时的跨域请求问题，确保您的前端可以部署在任何地方！
+## Technical Highlights
 
-## 🛠️ 技术栈概览
+<details>
+<summary><b>LLM + TTS pipeline — text response becomes voice</b></summary>
 
-| 模块 | 核心技术 | 描述 |
-| :--- | :--- | :--- |
-| **后端框架** | `Flask` | 轻量、灵活、Python 生态中最敏捷的 Web 框架。 |
-| **数据库** | `MongoDB` | 灵活的文档数据库，支持快速迭代和复杂数据结构。 |
-| **通信** | `Flask-CORS` | 确保前后端分离架构下的无障碍通信。 |
-| **语言** | `Python` | 简洁、高效、AI 领域的首选语言。 |
+- **S**: An AI consultation that only returns text misses the "realistic" dimension — patients need to hear responses, not read them.
+- **A**: `ai_bp` calls `AIBase.py` (OpenAI-compatible) to get the LLM reply text, then `audio_bp` feeds that text to `edge-tts` which synthesizes an MP3 on the fly. The audio URL is returned alongside the text in the same response.
+- **R**: Single API round-trip delivers both text and audio; no separate TTS request from the client.
+</details>
 
-## ⚙️ 快速启动指南
+<details>
+<summary><b>MongoDB session history with formatted context injection</b></summary>
 
-1.  **环境准备：** 确保您的系统安装了 **Python 3.x** 和 **MongoDB 服务**。
-2.  **安装依赖：** 使用 pip 安装 `requirements.txt` 中的所有依赖（包括 Flask, Flask-CORS, PyMongo 等）。
-3.  **启动服务：**
-    ```bash
-    python run.py
-    ```
-4.  **访问：** 您的智能咨询引擎已在 `http://127.0.0.1:2020` 启动并运行！
+- **S**: LLM APIs are stateless; maintaining coherent multi-turn consultation requires injecting full conversation history every request.
+- **A**: `MongoBase.py` stores each turn as a document. `GET /api/content` retrieves and formats the session history as an OpenAI `messages[]` array, which `AIBase.py` prepends to every new LLM call. `TablePool` manages session lifecycle (create, expire, clear).
+- **R**: Coherent multi-turn conversation with persistent history that survives server restarts.
+</details>
 
-## 🤝 贡献与合作
+## Repo Layout
 
-我们坚信，智能咨询的未来属于开源社区。如果您有任何关于 AI 模型集成、音频处理优化或数据库性能提升的绝妙想法，请不要犹豫，提交您的 Pull Request！
+```
+application/
+├── ai.py          ai_bp — chat endpoint + LLM call
+├── AIBase.py      OpenAI-compatible LLM wrapper
+├── audio.py       audio_bp — TTS synthesis
+├── MongoBase.py   MongoDB connection + document CRUD
+├── routes.py      Blueprint assembly
+├── TablePool.py   session management
+├── config.py      env-based config
+└── utils.py       shared helpers
+run.py             Flask entry point
+```
+
+## Roadmap
+
+- [x] LLM multi-turn conversation with MongoDB history
+- [x] edge-TTS voice synthesis endpoint
+- [x] Blueprint modular architecture
+- [ ] Streaming LLM response (SSE)
+- [ ] Emotion detection for adaptive consultation style
+- [ ] WebSocket real-time voice input (ASR)
+
+---
+
+<a id="中文"></a>
+
+## 中文速读
+
+- **是什么**：拟真 AI 咨询后端，Flask 蓝图架构，LLM 多轮对话 + MongoDB 会话历史 + edge-TTS 语音合成，单次 API 返回文本与音频。
+- **亮点**：`MongoBase.py` 持久化对话历史，每次请求注入完整上下文保证连贯性；LLM → TTS 管道无需客户端二次请求。
+- **运行**：`pip install -r requirements.txt && python run.py`。
+
+## License
+
+MIT © [Seal-Re](https://github.com/Seal-Re)
