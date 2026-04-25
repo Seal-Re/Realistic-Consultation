@@ -26,3 +26,7 @@ recordings/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Frontend subpackage
+frontend/node_modules/
+frontend/dist/
