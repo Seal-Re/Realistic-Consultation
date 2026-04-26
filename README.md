@@ -1,11 +1,3 @@
-# Realistic-Consultation · AI Consultation Platform (Full-Stack Monorepo)
-
-> **Full-stack monorepo: Flask backend (LLM + TTS + MongoDB) + Vue 3 frontend (chat UI).**
-
-**Monorepo layout:** `./` = Python Flask backend · `frontend/` = Vue 3 chat UI
-
----
-
 # Realistic-Consultation-Back-End · AI Consultation Flask Backend
 
 > **A Flask backend powering a realistic AI consultation experience — LLM conversation history, edge-TTS voice synthesis, and MongoDB session storage.**
