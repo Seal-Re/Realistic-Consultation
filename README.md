@@ -1,8 +1,8 @@
-# Realistic-Consultation-Back-End · AI Consultation Flask Backend
+# Realistic-Consultation · AI Consultation Full-Stack
 
-> **A Flask backend powering a realistic AI consultation experience — LLM conversation history, edge-TTS voice synthesis, and MongoDB session storage.**
+> **Full-stack realistic AI consultation — Flask backend (LLM history, edge-TTS, MongoDB sessions) + Vue 3 chat UI in `frontend/`.**
 >
-> Flask 驱动的 AI 拟真咨询后端：LLM 对话历史管理、edge-TTS 语音合成、MongoDB 会话存储，蓝图模块化架构。
+> AI 拟真咨询全栈：Flask 后端（LLM 对话历史、edge-TTS 语音合成、MongoDB 会话存储）+ Vue 3 前端 (`frontend/`)。
 
 [English](#english) · [中文](#中文)
 
@@ -39,9 +39,13 @@ flowchart LR
 ## Quickstart
 
 ```bash
+# Backend
 pip install -r requirements.txt
 cp .env.example .env  # fill OPENAI_API_KEY, MONGODB_URI
 python run.py
+
+# Frontend (Vue 3)
+cd frontend && npm install && npm run dev
 ```
 
 ### Key env vars
