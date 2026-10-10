@@ -1,122 +1,44 @@
-# Realistic-Consultation · AI Consultation Full-Stack
+# Realistic-Consultation
 
-> **Full-stack realistic AI consultation — Flask backend (LLM history, edge-TTS, MongoDB sessions) + Vue 3 chat UI in `frontend/`.**
->
-> AI 拟真咨询全栈：Flask 后端（LLM 对话历史、edge-TTS 语音合成、MongoDB 会话存储）+ Vue 3 前端 (`frontend/`)。
+Flask backend and a small Vue 3 frontend for a Chinese-medicine "realistic consultation": the user describes symptoms in text, an LLM answers in the role of a virtual doctor, and the answer is spoken by a Live2D avatar.
 
-[English](#english) · [中文](#中文)
+## Context
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)
-![Flask](https://img.shields.io/badge/Flask-3.x-000000?logo=flask)
-![MongoDB](https://img.shields.io/badge/MongoDB-pymongo-47A248?logo=mongodb)
-![OpenAI](https://img.shields.io/badge/LLM-OpenAI_Compatible-412991?logo=openai)
-![TTS](https://img.shields.io/badge/TTS-edge--tts-0078D7)
-![License](https://img.shields.io/badge/License-MIT-blue)
+Course project (TCM simulated consultation). Backend in `application/`, frontend in `frontend/`. The prompt, conversation and consultation text are Chinese.
 
----
+## How it works
 
-<a id="english"></a>
+- `POST /api/AI` (`application/ai.py`): loads the conversation for the session from MongoDB, inserts a fixed Chinese system prompt that casts the model as a virtual doctor, trims the history to 10 messages, and calls DeepSeek (`deepseek-reasoner`) through the `openai` SDK. The reply is appended to the history and saved back.
+- `POST /api/AI_new`: creates a new session by incrementing the highest `session_id`.
+- `GET /api/content`: returns the stored history without the system prompt, as `{role, content}` objects; accepts an optional `session_id`, otherwise uses the latest.
+- `GET /dealAudio` (`application/audio.py` → `utils.createAudio`): synthesizes an MP3 with the edge-tts CLI into `tts/<file_name>` and returns its URL.
+- `GET /api/table_list`: looks up documents in the `TablePool` collection by `number`.
 
-## Architecture
+The frontend calls `/api/AI` and `/dealAudio` as two separate requests (`frontend/src/App.vue`) and then plays the returned audio through the Live2D model.
 
-```mermaid
-flowchart LR
-    Client["Frontend / WeChat"] -->|HTTP| Flask
+## Tech stack
 
-    subgraph Flask["Flask App (Blueprint layout)"]
-        home_bp["home_bp\n(health + info)"]
-        ai_bp["ai_bp\n(LLM chat)"]
-        audio_bp["audio_bp\n(TTS audio)"]
-        table_bp["TablePool\n(session mgmt)"]
-    end
+- Backend: Flask 3 + Flask-CORS, pymongo (MongoDB at `mongodb://127.0.0.1:27017/`, database `Realistic-Consultation`, collections `ai_history` and `TablePool`), `openai` SDK against DeepSeek, edge-tts (14 voices mapped in `utils.voiceMap`).
+- Frontend: Vue 3 + Vite + axios, Live2D Cubism 4 / PixiJS runtime; several models are bundled under `frontend/src/assets/` (Doro, haru, Hiyori, kei_vowels_pro, March 7th, shizuku) but only the Doro model is loaded.
 
-    ai_bp --> AIBase["AIBase.py\n(OpenAI-compatible LLM)"]
-    audio_bp --> TTS["edge-tts\n(text → MP3)"]
-    ai_bp & table_bp --> MongoDB[("MongoDB\n(session history)")]
-    AIBase --> LLM["LLM API\n(OpenAI / compatible)"]
-```
-
-## Quickstart
+## Getting started
 
 ```bash
-# Backend
-pip install -r requirements.txt
-cp .env.example .env  # fill OPENAI_API_KEY, MONGODB_URI
-python run.py
+# Backend — no requirements file is committed; install Flask, flask-cors, pymongo, openai, edge-tts
+python run.py      # http://127.0.0.1:2020
 
-# Frontend (Vue 3)
-cd frontend && npm install && npm run dev
+cd frontend
+npm install
+npm run dev
 ```
 
-### Key env vars
+`edge-tts` must be on PATH. Set the DeepSeek key in `application/AIBase.py` (`api_key` is currently empty; `base_url` is `https://api.deepseek.com`). MongoDB must be running locally with the database and collections above.
 
-```env
-OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=https://api.openai.com/v1
-MONGODB_URI=mongodb://localhost:27017/consultation
-```
+## Status and limitations
 
-## API Overview
+- The repository contains a committed `error.log` (325 lines, April 2025) with Flask dev-server output. It includes the dev debugger PIN, local Windows paths, and full consultation text embedded in request query strings. It should be removed from the repository.
+- `test.py` is a seven-line file-existence check. `frontend/README.md` is the unmodified Vite template.
 
-| Blueprint | Path | Description |
-|---|---|---|
-| `ai_bp` | `/api/content` | Get formatted conversation history |
-| `ai_bp` | `/api/chat` | Send message, get LLM reply |
-| `audio_bp` | `/api/audio` | TTS: text → audio response |
-| `table_bp` | `/api/session/**` | Session CRUD |
+## Contributors / License
 
-## Technical Highlights
-
-<details>
-<summary><b>LLM + TTS pipeline — text response becomes voice</b></summary>
-
-- **S**: An AI consultation that only returns text misses the "realistic" dimension — patients need to hear responses, not read them.
-- **A**: `ai_bp` calls `AIBase.py` (OpenAI-compatible) to get the LLM reply text, then `audio_bp` feeds that text to `edge-tts` which synthesizes an MP3 on the fly. The audio URL is returned alongside the text in the same response.
-- **R**: Single API round-trip delivers both text and audio; no separate TTS request from the client.
-</details>
-
-<details>
-<summary><b>MongoDB session history with formatted context injection</b></summary>
-
-- **S**: LLM APIs are stateless; maintaining coherent multi-turn consultation requires injecting full conversation history every request.
-- **A**: `MongoBase.py` stores each turn as a document. `GET /api/content` retrieves and formats the session history as an OpenAI `messages[]` array, which `AIBase.py` prepends to every new LLM call. `TablePool` manages session lifecycle (create, expire, clear).
-- **R**: Coherent multi-turn conversation with persistent history that survives server restarts.
-</details>
-
-## Repo Layout
-
-```
-application/
-├── ai.py          ai_bp — chat endpoint + LLM call
-├── AIBase.py      OpenAI-compatible LLM wrapper
-├── audio.py       audio_bp — TTS synthesis
-├── MongoBase.py   MongoDB connection + document CRUD
-├── routes.py      Blueprint assembly
-├── TablePool.py   session management
-├── config.py      env-based config
-└── utils.py       shared helpers
-run.py             Flask entry point
-```
-
-## Roadmap
-
-- [x] LLM multi-turn conversation with MongoDB history
-- [x] edge-TTS voice synthesis endpoint
-- [x] Blueprint modular architecture
-- [ ] Streaming LLM response (SSE)
-- [ ] Emotion detection for adaptive consultation style
-- [ ] WebSocket real-time voice input (ASR)
-
----
-
-<a id="中文"></a>
-
-## 中文速读
-
-- **是什么**：拟真 AI 咨询后端，Flask 蓝图架构，LLM 多轮对话 + MongoDB 会话历史 + edge-TTS 语音合成，单次 API 返回文本与音频。
-- **亮点**：`MongoBase.py` 持久化对话历史，每次请求注入完整上下文保证连贯性；LLM → TTS 管道无需客户端二次请求。
-- **运行**：`pip install -r requirements.txt && python run.py`。
-
-## License
-
-MIT © [Seal-Re](https://github.com/Seal-Re)
+MIT — see `LICENSE`. Only Seal-Re has commits.
